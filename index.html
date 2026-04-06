@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCS – Bill Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Noto+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{--gold:#C9A84C;--teal:#1abc9c;--bg:#111;--card:#181818;--bd:#2a2a2a;--tx:#e8e8e8;--mu:#777;--ok:#2ecc71;--er:#e74c3c;--wn:#f39c12}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:'Noto Sans',sans-serif}
+header{background:linear-gradient(135deg,#0a0a0a,#1a1200);border-bottom:2px solid var(--gold);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:99}
+.logo{display:flex;align-items:center;gap:12px}
+.li{width:42px;height:42px;background:var(--gold);border-radius:8px;display:grid;place-items:center;font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:#000;flex-shrink:0}
+.ln{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--gold)}
+.ls{font-size:10px;color:var(--mu);letter-spacing:2px;text-transform:uppercase}
+nav a{padding:7px 13px;border:1px solid var(--bd);border-radius:6px;color:var(--mu);text-decoration:none;font-size:12px;margin-left:6px;transition:.2s;font-family:'Rajdhani',sans-serif;font-weight:700}
+nav a:hover{border-color:var(--gold);color:var(--gold)}
+.wrap{max-width:1060px;margin:0 auto;padding:22px 14px}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:18px}
+.bh{font-family:'Rajdhani',sans-serif;font-size:16px;color:var(--gold);margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.bh.t{color:var(--teal)}
+
+/* Search */
+.search-row{display:flex;gap:10px;flex-wrap:wrap}
+.search-row input{flex:1;min-width:200px;background:#202020;border:1px solid var(--bd);border-radius:8px;color:var(--tx);padding:12px 16px;font-size:14px;outline:none;font-family:inherit;transition:border .2s}
+.search-row input:focus{border-color:var(--gold)}
+.btn{padding:11px 22px;border-radius:8px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:.2s;letter-spacing:.5px}
+.bg{background:var(--gold);color:#000}.bg:hover{background:#d4a83a;transform:translateY(-1px)}
+.bt{background:var(--teal);color:#000}.bt:hover{background:#17a589;transform:translateY(-1px)}
+.bo{background:transparent;border:1px solid var(--gold);color:var(--gold)}.bo:hover{background:rgba(201,168,76,.1)}
+.br{background:rgba(231,76,60,.15);border:1px solid var(--er);color:var(--er)}
+
+/* Pending panel */
+.pending-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;margin-top:4px}
+.pc{background:#111;border:1px solid var(--bd);border-radius:10px;padding:14px 16px;position:relative}
+.pc.overdue{border-color:rgba(231,76,60,.4);background:#1a0a0a}
+.pc-name{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--tx)}
+.pc-phone{font-size:12px;color:var(--mu);margin-top:2px}
+.pc-bill{font-size:11px;color:var(--mu);margin-top:4px}
+.pc-bal{font-size:22px;font-family:'Rajdhani',sans-serif;font-weight:700;color:var(--er);margin-top:6px}
+.pc-due{font-size:11px;margin-top:3px}
+.pc-due.od{color:var(--er)}
+.pc-due.ok{color:var(--mu)}
+.od-tag{position:absolute;top:10px;right:10px;background:rgba(231,76,60,.2);border:1px solid var(--er);color:var(--er);border-radius:4px;font-size:10px;padding:2px 7px;font-family:'Rajdhani',sans-serif;font-weight:700}
+.total-bar{background:#1a1200;border:1px solid #3a2800;border-radius:8px;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.total-bar span{font-size:12px;color:var(--mu)}
+.total-bar strong{font-family:'Rajdhani',sans-serif;font-size:20px;color:var(--er)}
+
+/* Bill cards */
+.bill-card{background:#111;border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer;transition:.2s}
+.bill-card:hover{border-color:var(--gold);background:#151500}
+.bc-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.bc-billno{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;color:var(--gold)}
+.bc-date{font-size:11px;color:var(--mu)}
+.bc-name{font-size:14px;font-weight:600;margin-top:4px}
+.bc-phone{font-size:12px;color:var(--mu)}
+.bc-items{font-size:12px;color:var(--mu);margin-top:6px}
+.bc-bottom{display:flex;justify-content:space-between;align-items:center;margin-top:10px;flex-wrap:wrap;gap:6px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.b-ok{background:rgba(46,204,113,.12);color:var(--ok);border:1px solid rgba(46,204,113,.3)}
+.b-er{background:rgba(231,76,60,.12);color:var(--er);border:1px solid rgba(231,76,60,.3)}
+.b-type{background:#222;color:var(--mu);border:1px solid var(--bd);font-size:10px;padding:2px 8px;border-radius:4px}
+.bc-bal{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700}
+
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:200;overflow-y:auto;padding:14px}
+.mbox{max-width:720px;margin:18px auto;background:#fff;border-radius:12px;padding:34px;color:#111;font-family:'Noto Sans',Arial,sans-serif}
+.ma{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
+
+.toast{position:fixed;bottom:22px;right:22px;background:#222;border:1px solid var(--gold);color:var(--tx);padding:13px 18px;border-radius:10px;font-size:13px;z-index:999;transform:translateY(80px);opacity:0;transition:.3s;max-width:320px;line-height:1.5}
+.toast.on{transform:translateY(0);opacity:1}
+.empty{text-align:center;color:var(--mu);font-size:13px;padding:30px}
+.loading{text-align:center;color:var(--mu);font-size:13px;padding:20px}
+.refresh-btn{background:transparent;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:5px 12px;font-size:11px;cursor:pointer;font-family:'Rajdhani',sans-serif;font-weight:700;transition:.2s}
+.refresh-btn:hover{background:rgba(201,168,76,.1)}
+@media(max-width:600px){.search-row{flex-direction:column}.bc-top{flex-direction:column}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="li">GC</div>
+    <div>
+      <div class="ln">GARUDA CONSTRUCTION SERVICE</div>
+      <div class="ls">Bill Lookup &amp; Pending Balance</div>
+    </div>
+  </div>
+  <nav>
+    <a href="https://sites.google.com/view/gcskavi/main-products" target="_blank">🏗️ Main Inventory</a>
+    <a href="https://sites.google.com/view/gcskavi/sub-products" target="_blank">📦 Sub Inventory</a>
+  </nav>
+</header>
+
+<div class="wrap">
+
+  <!-- SEARCH BOX -->
+  <div class="box">
+    <div class="bh">🔍 Search Bill</div>
+    <div class="search-row">
+      <input id="search-input" placeholder="Enter Bill No / Customer Name / Mobile Number" oninput="onSearchInput()" onkeydown="if(event.key==='Enter') searchBills()">
+      <button class="btn bg" onclick="searchBills()">🔍 Search</button>
+      <button class="btn bo" onclick="clearSearch()">✕ Clear</button>
+    </div>
+    <div style="font-size:11px;color:var(--mu);margin-top:10px">
+      Search by: Bill No (GCS-M-XXXXXX) &nbsp;|&nbsp; Customer Name &nbsp;|&nbsp; Mobile Number
+    </div>
+  </div>
+
+  <!-- SEARCH RESULTS -->
+  <div id="results-box" class="box" style="display:none">
+    <div class="bh">📋 Search Results <span id="results-count" style="font-size:12px;color:var(--mu);font-family:'Noto Sans'"></span></div>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- PENDING BALANCE PANEL -->
+  <div class="box">
+    <div class="bh">
+      💰 Live Pending Balances
+      <button class="refresh-btn" onclick="loadPending()">⟳ Refresh</button>
+    </div>
+    <div id="pending-total" class="total-bar" style="display:none">
+      <span>Total Outstanding Amount</span>
+      <strong id="pending-total-amt">₹ 0</strong>
+    </div>
+    <div id="pending-grid" class="pending-grid">
+      <div class="loading">Loading pending balances…</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- BILL MODAL -->
+<div class="modal" id="bill-modal">
+  <div class="mbox">
+    <div id="bill-content"></div>
+    <div class="ma">
+      <button class="btn br" onclick="closeModal()">✖ Close</button>
+      <button class="btn bg" onclick="downloadPDF()">⬇ Download PDF</button>
+      <button class="btn" style="background:#25D366;color:#fff" onclick="shareWA()">📲 WhatsApp</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast-msg"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxyBinQds-Lvu9zxh3kqMUTeiKJdtOVqyYsPp_fY4az0-fexRv3o64twucqSa2AhRv8/exec';
+
+var currentBill = null;
+var searchTimer = null;
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// INIT
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+window.addEventListener('load', function() {
+  loadPending();
+});
+
+function el(id) { return document.getElementById(id); }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SEARCH
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  var q = el('search-input').value.trim();
+  if (q.length >= 3) {
+    searchTimer = setTimeout(searchBills, 500);
+  }
+}
+
+function searchBills() {
+  var q = el('search-input').value.trim();
+  if (!q) { toast('⚠ Enter bill no / name / mobile'); return; }
+
+  el('results-box').style.display = 'block';
+  el('results-list').innerHTML = '<div class="loading">⟳ Searching…</div>';
+  el('results-count').textContent = '';
+
+  fetch(API_URL + '?action=getBills&q=' + encodeURIComponent(q))
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status !== 'ok') {
+        el('results-list').innerHTML = '<div class="empty">⚠ Error: ' + data.message + '</div>';
+        return;
+      }
+      if (!data.bills || data.bills.length === 0) {
+        el('results-list').innerHTML = '<div class="empty">No bills found for "<b>' + q + '</b>"</div>';
+        el('results-count').textContent = '(0 results)';
+        return;
+      }
+      el('results-count').textContent = '(' + data.bills.length + ' found)';
+      el('results-list').innerHTML = data.bills.map(renderBillCard).join('');
+    })
+    .catch(function(e) {
+      el('results-list').innerHTML = '<div class="empty" style="color:var(--er)">⚠ Network error: ' + e.message + '</div>';
+    });
+}
+
+function clearSearch() {
+  el('search-input').value = '';
+  el('results-box').style.display = 'none';
+  el('results-list').innerHTML = '';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// RENDER BILL CARD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderBillCard(b) {
+  var isPaid   = b.status === 'PAID' || b.balance <= 0;
+  var itemsStr = b.items.map(function(i) { return i.name + ' ×' + i.qty; }).join(', ');
+  return '<div class="bill-card" onclick="openBill(' + JSON.stringify(b).replace(/"/g,'&quot;') + ')">' +
+    '<div class="bc-top">' +
+      '<div>' +
+        '<div class="bc-billno">' + b.billNo + '</div>' +
+        '<span class="b-type">' + (b.sheetType || 'MAIN') + '</span>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div class="bc-date">' + b.date + '</div>' +
+        '<span class="badge ' + (isPaid ? 'b-ok' : 'b-er') + '">' + (isPaid ? '✅ PAID' : '⚠ PENDING') + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="bc-name">👤 ' + b.customer + '</div>' +
+    '<div class="bc-phone">📞 ' + b.phone + (b.address ? '  |  📍 ' + b.address : '') + '</div>' +
+    '<div class="bc-items">📦 ' + (itemsStr || '—') + '</div>' +
+    '<div class="bc-bottom">' +
+      '<div style="font-size:12px;color:var(--mu)">⏱ ' + b.days + 'd / ' + b.months + 'mo &nbsp;|&nbsp; OUT: ' + formatDate(b.outDate) + '</div>' +
+      '<div class="bc-bal" style="color:' + (isPaid ? 'var(--ok)' : 'var(--er)') + '">' +
+        (isPaid ? '✅ PAID' : '₹ ' + Number(b.balance).toLocaleString('en-IN') + ' pending') +
+      '</div>' +
+    '</div>' +
+    '</div>';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// OPEN BILL → MODAL + PDF
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openBill(b) {
+  currentBill = b;
+  el('bill-content').innerHTML = makeBillHTML(b);
+  el('bill-modal').style.display = 'block';
+}
+function closeModal() { el('bill-modal').style.display = 'none'; }
+
+function makeBillHTML(b) {
+  var ac  = '#C9A84C';
+  var bg  = '#0D0D0D';
+  var isPaid = b.status === 'PAID' || b.balance <= 0;
+
+  var rows = (b.items || []).map(function(it) {
+    return '<tr style="border-bottom:1px solid #f0e8cc">' +
+      '<td style="padding:9px 13px">' + it.name + '</td>' +
+      '<td style="padding:9px;text-align:center">' + it.qty + '</td>' +
+      '<td style="padding:9px;text-align:center">₹' + it.price + '/' + (it.type === 'per day' ? 'day' : 'mo') + '</td>' +
+      '<td style="padding:9px;text-align:center;color:#777">' + b.days + 'd / ' + b.months + 'mo</td>' +
+      '<td style="padding:9px 13px;text-align:right;font-weight:700">₹' + Number(it.amount).toLocaleString('en-IN') + '</td>' +
+      '</tr>';
+  }).join('');
+
+  return '<div style="font-family:\'Noto Sans\',Arial,sans-serif;color:#111">' +
+    '<div style="background:' + bg + ';padding:22px 26px;border-radius:10px 10px 0 0;display:flex;justify-content:space-between;align-items:center">' +
+      '<div><div style="color:' + ac + ';font-size:19px;font-weight:700;letter-spacing:1px">GARUDA CONSTRUCTION SERVICE</div>' +
+      '<div style="color:#666;font-size:10px;letter-spacing:2px;margin-top:4px">DISPATCH BILL</div></div>' +
+      '<div style="text-align:right"><div style="color:' + ac + ';font-weight:700;font-size:13px">' + b.billNo + '</div>' +
+      '<div style="color:#aaa;font-size:11px;margin-top:3px">' + b.date + '</div></div>' +
+    '</div>' +
+    '<div style="background:#faf7ef;padding:14px 26px;display:grid;grid-template-columns:1fr 1fr;gap:10px;border-bottom:2px solid #e8dfc0">' +
+      '<div><div style="color:#999;font-size:10px;text-transform:uppercase">Customer</div><div style="font-weight:700;font-size:14px;margin-top:2px">' + b.customer + '</div></div>' +
+      '<div><div style="color:#999;font-size:10px;text-transform:uppercase">Contact</div><div style="font-weight:600;margin-top:2px">' + b.phone + '</div></div>' +
+      '<div><div style="color:#999;font-size:10px;text-transform:uppercase">Site</div><div style="margin-top:2px">' + (b.address || '—') + '</div></div>' +
+      '<div><div style="color:#999;font-size:10px;text-transform:uppercase">Period</div><div style="font-size:12px;margin-top:2px">' + formatDate(b.outDate) + ' → ' + formatDate(b.inDate) + '<br><b style="color:' + ac + '">' + b.days + 'd / ' + b.months + 'mo</b></div></div>' +
+    '</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:13px">' +
+      '<thead><tr style="background:' + ac + '">' +
+        '<th style="padding:9px 13px;text-align:left;color:#000">Product</th>' +
+        '<th style="padding:9px;text-align:center;color:#000">Qty</th>' +
+        '<th style="padding:9px;text-align:center;color:#000">Rate</th>' +
+        '<th style="padding:9px;text-align:center;color:#000">Duration</th>' +
+        '<th style="padding:9px 13px;text-align:right;color:#000">Amount</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody>' +
+    '</table>' +
+    '<div style="background:#f5efe0;padding:16px 26px">' +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span style="color:#555">Total Rental</span><span>₹' + Number(b.total).toLocaleString('en-IN') + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:13px"><span style="color:#555">Advance Paid</span><span style="color:green">₹' + Number(b.advance).toLocaleString('en-IN') + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:2px solid ' + ac + ';margin-top:8px;padding-top:10px"><span>Balance Due</span>' +
+        '<span style="color:' + (isPaid ? 'green' : '#c0392b') + '">' + (isPaid ? '✅ FULLY PAID' : '₹' + Number(b.balance).toLocaleString('en-IN')) + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div style="background:' + bg + ';padding:11px 26px;text-align:center;color:#555;font-size:11px;border-radius:0 0 10px 10px">' +
+      'Garuda Construction Service | karudakavivdm@gmail.com | Return all materials in good condition.' +
+    '</div></div>';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PDF DOWNLOAD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function downloadPDF() {
+  if (!currentBill) return;
+  var b     = currentBill;
+  var ac    = [201, 168, 76];
+  var jspdf = window.jspdf;
+  var doc   = new jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+
+  doc.setFillColor(10,10,10); doc.rect(0,0,210,297,'F');
+  doc.setTextColor(201,168,76); doc.setFontSize(14); doc.setFont('helvetica','bold');
+  doc.text('GARUDA CONSTRUCTION SERVICE', 14, 18);
+  doc.setFontSize(8); doc.setTextColor(100,100,100);
+  doc.text('DISPATCH BILL — ' + (b.sheetType || 'MAIN') + ' INVENTORY', 14, 25);
+  doc.setTextColor(140,140,140);
+  doc.text(b.billNo, 145, 16); doc.text(b.date, 145, 22);
+
+  doc.setDrawColor(201,168,76); doc.line(14,31,196,31);
+  doc.setTextColor(195,195,195); doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.text('Customer : ' + b.customer, 14, 39);
+  doc.text('Phone    : ' + b.phone, 14, 46);
+  doc.text('Address  : ' + (b.address || '—').slice(0,35), 14, 53);
+  doc.text('OUT      : ' + formatDate(b.outDate), 100, 39);
+  doc.text('IN       : ' + formatDate(b.inDate), 100, 46);
+  doc.text('Duration : ' + b.days + 'd / ' + b.months + 'mo', 100, 53);
+
+  doc.line(14,58,196,58);
+  doc.setFillColor(201,168,76); doc.rect(14,61,182,8,'F');
+  doc.setTextColor(0); doc.setFont('helvetica','bold'); doc.setFontSize(9);
+  doc.text('Product',16,67); doc.text('Qty',109,67);
+  doc.text('Rate',127,67); doc.text('Duration',151,67); doc.text('Amount',175,67);
+
+  var y = 79;
+  doc.setFont('helvetica','normal'); doc.setTextColor(195,195,195); doc.setFontSize(9);
+  (b.items || []).forEach(function(it) {
+    doc.text(it.name.slice(0,26), 16, y);
+    doc.text(String(it.qty), 111, y);
+    doc.text('Rs'+it.price+'/'+(it.type==='per day'?'day':'mo'), 126, y);
+    doc.text(b.days+'d/'+b.months+'mo', 154, y);
+    doc.text('Rs'+Number(it.amount).toLocaleString('en-IN'), 173, y);
+    y += 9;
+  });
+
+  doc.setDrawColor(201,168,76); doc.line(14,y+2,196,y+2); y += 11;
+  doc.setFont('helvetica','bold'); doc.setFontSize(10);
+  doc.setTextColor(195,195,195);
+  doc.text('Total Rental : Rs ' + Number(b.total).toLocaleString('en-IN'), 120, y); y += 9;
+  doc.setTextColor(46,204,113);
+  doc.text('Advance Paid : Rs ' + Number(b.advance).toLocaleString('en-IN'), 120, y); y += 9;
+  var isPaid = b.status === 'PAID' || b.balance <= 0;
+  doc.setTextColor(isPaid ? 46 : 231, isPaid ? 204 : 76, isPaid ? 113 : 60);
+  doc.text('Balance Due  : ' + (isPaid ? 'FULLY PAID' : 'Rs ' + Number(b.balance).toLocaleString('en-IN')), 120, y);
+  y += 14;
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(80,80,80);
+  doc.text('Thank you for choosing Garuda Construction Service.', 14, y);
+
+  doc.save(b.billNo + '_' + b.customer.replace(/\s+/g,'_') + '.pdf');
+  toast('✅ PDF downloaded');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WHATSAPP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function shareWA() {
+  if (!currentBill) return;
+  var b  = currentBill;
+  var ph = (b.phone || '').replace(/\D/g,'');
+  var wa = ph.startsWith('91') ? ph : '91' + ph;
+  var msg = '🏗️ *DISPATCH BILL — GARUDA*\n' + b.billNo + ' | ' + b.date + '\n' +
+    '👤 ' + b.customer + ' | 📞 ' + b.phone + '\n' +
+    '📍 ' + (b.address || '—') + '\n\nItems:\n' +
+    (b.items||[]).map(function(i){ return '• ' + i.name + ': ' + i.qty + ' pcs = ₹' + Number(i.amount).toLocaleString('en-IN'); }).join('\n') +
+    '\n\n⏱ ' + b.days + ' days\n' +
+    '💰 Total: ₹' + Number(b.total).toLocaleString('en-IN') + '\n' +
+    '✅ Advance: ₹' + Number(b.advance).toLocaleString('en-IN') + '\n' +
+    '⚠️ Balance: ₹' + Number(b.balance).toLocaleString('en-IN') + '\n\n' +
+    '🙏 Garuda Construction Service';
+  window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PENDING BALANCE PANEL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function loadPending() {
+  el('pending-grid').innerHTML = '<div class="loading">⟳ Loading pending balances from Google Sheet…</div>';
+  el('pending-total').style.display = 'none';
+
+  fetch(API_URL + '?action=getPending')
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.status !== 'ok') {
+        el('pending-grid').innerHTML = '<div class="empty" style="color:var(--er)">⚠ ' + data.message + '</div>';
+        return;
+      }
+      if (!data.pending || data.pending.length === 0) {
+        el('pending-grid').innerHTML = '<div class="empty">🎉 No pending balances! All payments cleared.</div>';
+        return;
+      }
+
+      el('pending-total').style.display = 'flex';
+      el('pending-total-amt').textContent = '₹ ' + Number(data.total).toLocaleString('en-IN');
+
+      el('pending-grid').innerHTML = data.pending.map(function(p) {
+        return '<div class="pc' + (p.overdue ? ' overdue' : '') + '">' +
+          (p.overdue ? '<span class="od-tag">OVERDUE</span>' : '') +
+          '<div class="pc-name">👤 ' + p.customer + '</div>' +
+          '<div class="pc-phone">📞 ' + p.phone + '</div>' +
+          '<div class="pc-bill">🧾 ' + p.billNo + '</div>' +
+          '<div class="pc-bal">₹ ' + Number(p.balance).toLocaleString('en-IN') + '</div>' +
+          '<div class="pc-due ' + (p.overdue ? 'od' : 'ok') + '">' +
+            (p.overdue ? '🔴 Overdue — Due: ' : '📅 Due: ') + formatDate(p.inDate) +
+          '</div>' +
+          '</div>';
+      }).join('');
+    })
+    .catch(function(e) {
+      el('pending-grid').innerHTML = '<div class="empty" style="color:var(--er)">⚠ Network error: ' + e.message + '</div>';
+    });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// HELPERS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function formatDate(s) {
+  if (!s) return '—';
+  try {
+    return new Date(s).toLocaleString('en-IN', {
+      day:'2-digit', month:'short', year:'numeric',
+      hour:'2-digit', minute:'2-digit'
+    });
+  } catch(e) { return String(s); }
+}
+
+function toast(msg, ms) {
+  ms = ms || 3500;
+  var t = el('toast-msg');
+  t.textContent = msg;
+  t.classList.add('on');
+  setTimeout(function() { t.classList.remove('on'); }, ms);
+}
+</script>
+</body>
+</html>
